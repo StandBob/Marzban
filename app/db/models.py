@@ -37,22 +37,20 @@ class User(Base):
 
     @property
     def excluded_inbounds(self):
-        data = {}
-        for p in self.proxies:
-            data[p.type] = [i.tag for i in p.excluded_inbounds]
-        return data
+        inbounds = {}
+        for proxy in self.proxies:
+            inbounds[proxy.type] = [i.tag for i in proxy.excluded_inbounds]
+        return inbounds
 
     @property
     def inbounds(self):
         inbounds = {}
-        for proxy_type, excluded_tags in self.excluded_inbounds.items():
-            for inbound in INBOUNDS.get(proxy_type, []):
-                if inbound['tag'] in excluded_tags:
+        for proxy in self.proxies:
+            inbounds[proxy.type] = []
+            for inbound in INBOUNDS.get(proxy.type, []):
+                if inbound['tag'] in proxy.excluded_inbounds:
                     continue
-                try:
-                    inbounds[proxy_type].append(inbound['tag'])
-                except KeyError:
-                    inbounds[proxy_type] = [inbound['tag']]
+                inbounds[proxy.type].append(inbound['tag'])
 
         return inbounds
 
