@@ -72,7 +72,6 @@ for inbound in config['inbounds']:
         net_settings = stream.get(f"{net}Settings", {})
         security = stream.get("security")
         tls_settings = stream.get(f"{security}Settings")
-        headers = net_settings.get('header', {}).get('headers', {}) or net_settings.get('headers', {})
 
         if net_settings.get('acceptProxyProtocol') == True and inbound['tag'] != XRAY_FALLBACK_INBOUND_TAG:
             # probably this is a fallback
@@ -82,32 +81,61 @@ for inbound in config['inbounds']:
         settings['stream']['net'] = net
         settings['stream']['tls'] = security in ('tls', 'xtls')
 
-        host = headers.get('Host')
-        if isinstance(host, str):
-            settings['stream']['host'] = host
-        elif isinstance(host, list):
-            settings['stream']['host'] = host[0]
-
         if tls_settings:
             settings['stream']['sni'] = tls_settings.get('serverName', '')
 
         if net == 'tcp':
-            path_settings = net_settings.get('header', {}).get('request', {}).get('path')
-            if path_settings and isinstance(path_settings, str):
-                raise ValueError(f"Path settings in {inbound['tag']} must be a list, not str\n"
+            header = net_settings.get('header', {})
+            request = header.get('request', {})
+            path = request.get('path')
+            host = request.get('headers', {}).get('Host')
+
+            settings['stream']['header_type'] = header.get('type', '')
+
+            if isinstance(path, str) or isinstance(host, str):
+                raise ValueError(f"Settings of {inbound['tag']} for path and host must be list, not str\n"
                                  "https://xtls.github.io/config/transports/tcp.html#httpheaderobject")
-            if path_settings and isinstance(path_settings, list):
-                settings['stream']['path'] = path_settings[0]
-                settings['stream']['header_type'] = 'http'
+
+            if path and isinstance(path, list):
+                settings['stream']['path'] = path[0]
+
+            if host and isinstance(host, list):
+                settings['stream']['host'] = host[0]
+
+        elif net == 'ws':
+            path = net_settings.get('path', '')
+            host = net_settings.get('headers', {}).get('Host')
+
+            settings['stream']['header_type'] = ''
+
+            if isinstance(path, list) or isinstance(host, list):
+                raise ValueError(f"Settings of {inbound['tag']} for path and host must be str, not list\n"
+                                 "https://xtls.github.io/config/transports/websocket.html#websocketobject")
+
+            if isinstance(path, str):
+                settings['stream']['path'] = path
+
+            if isinstance(host, str):
+                settings['stream']['host'] = host
+
         elif net == 'grpc':
+            settings['stream']['header_type'] = ''
             settings['stream']['path'] = net_settings.get('serviceName', '')
+            settings['stream']['host'] = ''
+
         else:
             settings['stream']['path'] = net_settings.get('path', '')
+            host = net_settings.get('host', {}) or net_settings.get('Host', {})
+            if host and isinstance(host, list):
+                settings['stream']['path'] = host[0]
+            elif host and isinstance(host, str):
+                settings['stream']['path'] = host
 
     try:
         INBOUNDS[inbound['protocol']].append(settings)
     except KeyError:
         INBOUNDS[inbound['protocol']] = [settings]
+
 
 __all__ = [
     "config",
