@@ -90,7 +90,9 @@ class UserCreate(User):
     def validate_inbounds(cls, v, values, **kwargs):
         for proxy_type in values['proxies']:
             tags = v.get(proxy_type)
-            if tags:
+            if isinstance(tags, list) and not tags:
+                raise ValueError(f"{proxy_type} inbounds cannot be empty")
+            elif tags:
                 for tag in tags:
                     if not any(i['tag'] == tag for i in INBOUNDS.get(proxy_type, {})):
                         raise ValueError(f"Inbound tag {tag} doesn't exist")
