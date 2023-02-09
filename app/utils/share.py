@@ -293,7 +293,7 @@ def generate_v2ray_links(username: str, proxies: dict, inbound_tags: dict) -> li
     links = []
     salt = secrets.token_urlsafe(12).lower()
     for protocol, settings in proxies.items():
-        for inbound in filter(lambda i: i['tag'] in inbound_tags.get(protocol, []), INBOUNDS[protocol]):
+        for inbound in filter(lambda i: i['tag'] in inbound_tags.get(protocol, []), INBOUNDS.get(protocol, [])):
             stream = inbound['stream'].copy()
             stream['sni'] = stream['sni'].replace('*', salt)
             stream['host'] = stream['host'].replace('*', salt)
@@ -316,7 +316,7 @@ def generate_clash_subscription(username: str, proxies: dict, inbound_tags: dict
     conf = ClashConfiguration()
     salt = secrets.token_urlsafe(12).lower()
     for protocol, settings in proxies.items():
-        for inbound in filter(lambda i: i['tag'] in inbound_tags.get(protocol, []), INBOUNDS[protocol]):
+        for inbound in filter(lambda i: i['tag'] in inbound_tags.get(protocol, []), INBOUNDS.get(protocol, [])):
             stream = inbound['stream'].copy()
             stream['sni'] = stream['sni'].replace('*', salt)
             stream['host'] = stream['host'].replace('*', salt)
