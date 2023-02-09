@@ -27,26 +27,6 @@ class User(BaseModel):
     data_limit: int = None
     inbounds: Dict[ProxyTypes, List[str]] = {}
 
-    @validator('inbounds')
-    def validate_inbounds(cls, v, values, **kwargs):
-        if v:
-            for proxy_type, tags in v.items():
-                if not tags:
-                    raise ValueError(f"{proxy_type} inbounds cannot be empty")
-
-                for tag in tags:
-                    if not any(i['tag'] == tag for i in INBOUNDS.get(proxy_type, {})):
-                        raise ValueError(f"Inbound tag {tag} doesn't exist")
-        else:
-            v = {}
-            for proxy_type in values.get('proxies', {}):
-                for inbound in INBOUNDS[proxy_type]:
-                    try:
-                        v[proxy_type].append(inbound['tag'])
-                    except KeyError:
-                        v[proxy_type] = [inbound['tag']]
-        return v
-
     @validator('proxies', pre=True, always=True)
     def validate_proxies(cls, v, values, **kwargs):
         if not v:
@@ -105,6 +85,19 @@ class UserCreate(User):
                 "data_limit": 0
             }
         }
+
+    @validator('inbounds')
+    def validate_inbounds(cls, v, values, **kwargs):
+        for proxy_type in values['proxies']:
+            tags = v.get(proxy_type)
+            if tags:
+                for tag in tags:
+                    if not any(i['tag'] == tag for i in INBOUNDS.get(proxy_type, {})):
+                        raise ValueError(f"Inbound tag {tag} doesn't exist")
+            else:
+                v[proxy_type] = [i['tag'] for i in INBOUNDS[proxy_type]]
+
+        return v
 
 
 class UserModify(User):
@@ -173,7 +166,9 @@ class UserResponse(User):
     @validator('links', pre=False, always=True)
     def validate_links(cls, v, values, **kwargs):
         if not v:
-            return generate_v2ray_links(values['username'], values.get('proxies', {}), values['inbounds'])
+            return generate_v2ray_links(values['username'],
+                                        values.get('proxies', {}),
+                                        values.get('inbounds', {}))
         return v
 
     @validator('subscription_url', pre=False, always=True)

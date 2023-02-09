@@ -47,10 +47,10 @@ class User(Base):
         inbounds = {}
         for proxy in self.proxies:
             inbounds[proxy.type] = []
+            excluded_tags = [i.tag for i in proxy.excluded_inbounds]
             for inbound in INBOUNDS.get(proxy.type, []):
-                if inbound['tag'] in proxy.excluded_inbounds:
-                    continue
-                inbounds[proxy.type].append(inbound['tag'])
+                if inbound['tag'] not in excluded_tags:
+                    inbounds[proxy.type].append(inbound['tag'])
 
         return inbounds
 
