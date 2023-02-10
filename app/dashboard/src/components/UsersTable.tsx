@@ -95,7 +95,6 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
     onEditingUser,
     setQRCode,
   } = useDashboard();
-
   const marginTop =
     useBreakpointValue({
       base: 120,

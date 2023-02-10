@@ -53,8 +53,8 @@ const QRIcon = chakra(QrCodeIcon, {
 });
 
 export const QRCodeDialog: FC = () => {
-  const { qrcodeLinks, setQRCode } = useDashboard();
-  const isOpen = qrcodeLinks !== null;
+  const { QRcodeLinks, setQRCode } = useDashboard();
+  const isOpen = QRcodeLinks !== null;
   const [index, setIndex] = useState(0);
   const onClose = () => {
     setQRCode(null);
@@ -69,7 +69,7 @@ export const QRCodeDialog: FC = () => {
           </Icon>
         </ModalHeader>
         <ModalCloseButton mt={3} />
-        {qrcodeLinks && (
+        {QRcodeLinks && (
           <ModalBody w="440px" display="flex" justifyContent="center">
             <Box w="300px">
               <Slider
@@ -103,7 +103,7 @@ export const QRCodeDialog: FC = () => {
                   </IconButton>
                 }
               >
-                {qrcodeLinks.map((link, i) => {
+                {QRcodeLinks.map((link, i) => {
                   return (
                     <HStack key={i}>
                       <QRCode
@@ -119,7 +119,7 @@ export const QRCodeDialog: FC = () => {
                 })}
               </Slider>
               <Text display="block" textAlign="center" pb={3} mt={1}>
-                {index + 1} / {qrcodeLinks.length}
+                {index + 1} / {QRcodeLinks.length}
               </Text>
             </Box>
           </ModalBody>
