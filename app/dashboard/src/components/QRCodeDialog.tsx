@@ -12,6 +12,7 @@ import {
   ModalHeader,
   ModalOverlay,
   Text,
+  VStack,
 } from "@chakra-ui/react";
 import { Icon } from "./Icon";
 import {
@@ -53,11 +54,12 @@ const QRIcon = chakra(QrCodeIcon, {
 });
 
 export const QRCodeDialog: FC = () => {
-  const { QRcodeLinks, setQRCode } = useDashboard();
+  const { QRcodeLinks, setQRCode, setSubLink, subscribeUrl } = useDashboard();
   const isOpen = QRcodeLinks !== null;
   const [index, setIndex] = useState(0);
   const onClose = () => {
     setQRCode(null);
+    setSubLink(null);
   };
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -70,7 +72,39 @@ export const QRCodeDialog: FC = () => {
         </ModalHeader>
         <ModalCloseButton mt={3} />
         {QRcodeLinks && (
-          <ModalBody w="440px" display="flex" justifyContent="center">
+          <ModalBody
+            gap={{
+              base: "20px",
+              lg: "50px",
+            }}
+            pr={{
+              lg: "60px",
+            }}
+            px={{
+              base: "50px",
+            }}
+            display="flex"
+            justifyContent="center"
+            flexDirection={{
+              base: "column",
+              lg: "row",
+            }}
+          >
+            {subscribeUrl && (
+              <VStack>
+                <QRCode
+                  mx="auto"
+                  size={300}
+                  p="2"
+                  level={"L"}
+                  includeMargin={false}
+                  value={subscribeUrl}
+                />
+                <Text display="block" textAlign="center" pb={3} mt={1}>
+                  Subscribe Link
+                </Text>
+              </VStack>
+            )}
             <Box w="300px">
               <Slider
                 centerPadding="0px"

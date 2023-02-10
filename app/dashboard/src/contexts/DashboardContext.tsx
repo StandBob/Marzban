@@ -19,6 +19,7 @@ type DashboardStateType = {
   users: User[];
   loading: boolean;
   filters: FilterType;
+  subscribeUrl: string | null;
   QRcodeLinks: string[] | null;
   isEditingHosts: boolean;
   onCreateUser: (isOpen: boolean) => void;
@@ -30,6 +31,7 @@ type DashboardStateType = {
   createUser: (user: UserCreate) => Promise<void>;
   editUser: (user: UserCreate) => Promise<void>;
   setQRCode: (links: string[] | null) => void;
+  setSubLink: (subscribeURL: string | null) => void;
   onEditingHosts: (isEditingHosts: boolean) => void;
 };
 
@@ -55,6 +57,7 @@ export const useDashboard = create<
       deletingUser: null,
       isCreatingNewUser: false,
       QRcodeLinks: null,
+      subscribeUrl: null,
       users: [],
       loading: true,
       isEditingHosts: false,
@@ -102,6 +105,9 @@ export const useDashboard = create<
       },
       onEditingHosts: (isEditingHosts: boolean) => {
         set({ isEditingHosts });
+      },
+      setSubLink: (subscribeUrl) => {
+        set({ subscribeUrl });
       },
     }),
     (state): ComputedStore => {

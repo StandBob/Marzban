@@ -94,6 +94,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
     users: totalUsers,
     onEditingUser,
     setQRCode,
+    setSubLink,
   } = useDashboard();
   const marginTop =
     useBreakpointValue({
@@ -252,6 +253,7 @@ export const UsersTable: FC<UsersTableProps> = (props) => {
                         }}
                         onClick={() => {
                           setQRCode(user.links);
+                          setSubLink(user.subscription_url);
                         }}
                       >
                         <QRIcon />
