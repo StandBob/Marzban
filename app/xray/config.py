@@ -86,6 +86,14 @@ class XRayConfig(dict):
             self["routing"] = {"rules": []}
             self["routing"]["rules"].insert(0, rule)
 
+    def _validate(self):
+        for inbound in self['inbounds']:
+            if not inbound.get("tag"):
+                raise ValueError("all inbounds must have a unique tag")
+        for outbound in self['outbounds']:
+            if not outbound.get("tag"):
+                raise ValueError("all outbounds must have a unique tag")
+
     def get_inbound(self, tag) -> dict:
         for inbound in self['inbounds']:
             if inbound['tag'] == tag:

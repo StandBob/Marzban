@@ -35,18 +35,11 @@ FALLBACK_INBOUND = config.get_inbound(XRAY_FALLBACK_INBOUND_TAG)
 
 
 for inbound in config['inbounds']:
-    if inbound.get('protocol') == "dokodemo-door":
+    if (inbound.get('protocol') == "dokodemo-door"
+            or inbound['tag'] in XRAY_EXCLUDE_INBOUND_TAGS):
         continue
 
-    settings = {}
-
-    try:
-        settings['tag'] = inbound['tag']
-    except KeyError:
-        raise ValueError("one inbound have no tag")
-
-    if inbound['tag'] in XRAY_EXCLUDE_INBOUND_TAGS:
-        continue
+    settings = {'tag': inbound['tag']}
 
     try:
         settings['port'] = inbound['port']
