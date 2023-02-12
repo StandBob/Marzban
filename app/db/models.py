@@ -37,22 +37,22 @@ class User(Base):
 
     @property
     def excluded_inbounds(self):
-        inbounds = {}
+        _ = {}
         for proxy in self.proxies:
-            inbounds[proxy.type] = [i.tag for i in proxy.excluded_inbounds]
-        return inbounds
+            _[proxy.type] = [i.tag for i in proxy.excluded_inbounds]
+        return _
 
     @property
     def inbounds(self):
-        inbounds = {}
+        _ = {}
         for proxy in self.proxies:
-            inbounds[proxy.type] = []
+            _[proxy.type] = []
             excluded_tags = [i.tag for i in proxy.excluded_inbounds]
             for inbound in INBOUNDS.get(proxy.type, []):
                 if inbound['tag'] not in excluded_tags:
-                    inbounds[proxy.type].append(inbound['tag'])
+                    _[proxy.type].append(inbound['tag'])
 
-        return inbounds
+        return _
 
 
 excluded_inbounds_association = Table(

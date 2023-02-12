@@ -86,7 +86,7 @@ class UserCreate(User):
             }
         }
 
-    @validator('inbounds')
+    @validator('inbounds', pre=True, always=True)
     def validate_inbounds(cls, v, values, **kwargs):
         for proxy_type in values['proxies']:
             tags = v.get(proxy_type)
@@ -126,7 +126,7 @@ class UserModify(User):
             }
         }
 
-    @validator('inbounds')
+    @validator('inbounds', pre=True, always=True)
     def validate_inbounds(cls, v, values, **kwargs):
         if v:
             for proxy_type, tags in v.items():
