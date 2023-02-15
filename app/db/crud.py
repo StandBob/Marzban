@@ -1,8 +1,9 @@
-from typing import Union
+from typing import List, Union
 
-from app.db.models import JWT, Admin, Proxy, ProxyInbound, System, User
+from app.db.models import JWT, Admin, Proxy, ProxyHost, ProxyInbound, System, User
 from app.models.admin import AdminCreate, AdminModify
 from app.models.user import UserCreate, UserModify, UserStatus
+from app.models.proxy import ProxyHost as ProxyHostModify
 from sqlalchemy.orm import Session
 
 
@@ -11,9 +12,31 @@ def get_or_create_inbound(db: Session, inbound_tag: str):
     if not inbound:
         inbound = ProxyInbound(tag=inbound_tag)
         db.add(inbound)
+        host = ProxyHost(remark="🚀 Marz", address="{SERVER_IP}", inbound=inbound)
+        db.add(host)
         db.commit()
         db.refresh(inbound)
     return inbound
+
+
+def get_hosts(db: Session, inbound_tag: str):
+    inbound = get_or_create_inbound(db, inbound_tag)
+    return inbound.hosts
+
+
+def update_hosts(db: Session, inbound_tag: str, modified_hosts: List[ProxyHostModify]):
+    inbound = get_or_create_inbound(db, inbound_tag)
+    inbound.hosts = [
+        ProxyHost(
+            remark=host.remark,
+            address=host.address,
+            port=host.port,
+            inbound=inbound
+        ) for host in modified_hosts
+    ]
+    db.commit()
+    db.refresh(inbound)
+    return inbound.hosts
 
 
 def get_user(db: Session, username: str):
@@ -55,14 +78,14 @@ def get_users_count(db: Session, status: UserStatus = None):
 
 
 def create_user(db: Session, user: UserCreate, admin: Admin = None):
-    excluded_inbounds_tags = user.get_excluded_inbounds()
+    excluded_inbounds_tags = user.excluded_inbounds
     proxies = []
-    for ptype, settings in user.proxies.items():
+    for proxy_type, settings in user.proxies.items():
         excluded_inbounds = [
-            get_or_create_inbound(db, tag) for tag in excluded_inbounds_tags[ptype]
+            get_or_create_inbound(db, tag) for tag in excluded_inbounds_tags[proxy_type]
         ]
         proxies.append(
-            Proxy(type=ptype.value,
+            Proxy(type=proxy_type.value,
                   settings=settings.dict(no_obj=True),
                   excluded_inbounds=excluded_inbounds)
         )
@@ -101,8 +124,7 @@ def update_user(db: Session, dbuser: User, modify: UserModify):
                 db.delete(proxy)
 
     if modify.inbounds:
-        excluded_inbounds_tags = modify.get_excluded_inbounds()
-        for proxy_type, tags in excluded_inbounds_tags.items():
+        for proxy_type, tags in modify.excluded_inbounds.items():
             dbproxy = db.query(Proxy) \
                 .where(Proxy.user == dbuser, Proxy.type == proxy_type) \
                 .first()

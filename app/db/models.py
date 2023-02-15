@@ -1,14 +1,13 @@
 import os
 from datetime import datetime
 
+from app import xray
 from app.db.base import Base
 from app.models.proxy import ProxyTypes
 from app.models.user import UserStatus
 from sqlalchemy import (JSON, BigInteger, Column, DateTime, Enum, ForeignKey,
-                        Integer, String, Table)
+                        Integer, String, Table, UniqueConstraint)
 from sqlalchemy.orm import relationship
-
-from app.xray import INBOUNDS
 
 
 class Admin(Base):
@@ -48,7 +47,7 @@ class User(Base):
         for proxy in self.proxies:
             _[proxy.type] = []
             excluded_tags = [i.tag for i in proxy.excluded_inbounds]
-            for inbound in INBOUNDS.get(proxy.type, []):
+            for inbound in xray.config.inbounds_by_protocol.get(proxy.type, []):
                 if inbound['tag'] not in excluded_tags:
                     _[proxy.type].append(inbound['tag'])
 
@@ -79,6 +78,21 @@ class ProxyInbound(Base):
 
     id = Column(Integer, primary_key=True)
     tag = Column(String, unique=True, nullable=False, index=True)
+    hosts = relationship("ProxyHost", back_populates="inbound", cascade="all, delete-orphan")
+
+
+class ProxyHost(Base):
+    __tablename__ = "hosts"
+    # __table_args__ = (
+    #     UniqueConstraint('inbound_tag', 'remark'),
+    # )
+
+    id = Column(Integer, primary_key=True)
+    remark = Column(String, unique=False, nullable=False)
+    address = Column(String, unique=False, nullable=False)
+    port = Column(Integer, nullable=True)
+    inbound_tag = Column(String, ForeignKey("inbounds.tag"), nullable=False)
+    inbound = relationship("ProxyInbound", back_populates="hosts")
 
 
 class System(Base):

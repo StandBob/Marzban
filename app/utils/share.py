@@ -1,14 +1,15 @@
 import base64
 import copy
 import json
+import secrets
 import urllib.parse as urlparse
-from typing import List, Union
+from typing import Union
 from uuid import UUID
 
 import yaml
-from app.xray import INBOUNDS
-from config import XRAY_HOSTS
-import secrets
+from app import xray
+from app.utils.store import XrayStore
+from config import SERVER_IP
 
 
 class V2rayShareLink(str):
@@ -29,7 +30,7 @@ class V2rayShareLink(str):
             'aid': '0',
             'host': host,
             'id': str(id),
-            'net': net,
+            'network': net,
             'path': urlparse.quote(path),
             'port': port,
             'ps': remark,
@@ -153,7 +154,7 @@ class ClashConfiguration(object):
                            address=host,
                            port=port,
                            id=settings['id'],
-                           net=stream['net'],
+                           net=stream['network'],
                            tls=stream['tls'],
                            sni=stream['sni'],
                            host=stream['host'],
@@ -164,7 +165,7 @@ class ClashConfiguration(object):
                             address=host,
                             port=port,
                             password=settings['password'],
-                            net=stream['net'],
+                            net=stream['network'],
                             tls=stream['tls'],
                             sni=stream['sni'],
                             host=stream['host'],
@@ -251,7 +252,7 @@ def get_v2ray_link(remark: str, host: str, port: int, protocol: str, settings: d
                                     address=host,
                                     port=port,
                                     id=settings['id'],
-                                    net=stream['net'],
+                                    net=stream['network'],
                                     tls=stream['tls'],
                                     sni=stream['sni'],
                                     host=stream['host'],
@@ -263,7 +264,7 @@ def get_v2ray_link(remark: str, host: str, port: int, protocol: str, settings: d
                                     address=host,
                                     port=port,
                                     id=settings['id'],
-                                    net=stream['net'],
+                                    net=stream['network'],
                                     tls=stream['tls'],
                                     sni=stream['sni'],
                                     host=stream['host'],
@@ -275,7 +276,7 @@ def get_v2ray_link(remark: str, host: str, port: int, protocol: str, settings: d
                                      address=host,
                                      port=port,
                                      password=settings['password'],
-                                     net=stream['net'],
+                                     net=stream['network'],
                                      tls=stream['tls'],
                                      sni=stream['sni'],
                                      host=stream['host'],
@@ -289,18 +290,27 @@ def get_v2ray_link(remark: str, host: str, port: int, protocol: str, settings: d
                                           password=settings['password'])
 
 
-def generate_v2ray_links(username: str, proxies: dict, inbound_tags: dict) -> list:
+def generate_v2ray_links(username: str, proxies: dict, inbounds: dict) -> list:
     links = []
     salt = secrets.token_urlsafe(12).lower()
-    for protocol, settings in proxies.items():
-        for inbound in filter(lambda i: i['tag'] in inbound_tags.get(protocol, []), INBOUNDS.get(protocol, [])):
-            stream = inbound['stream'].copy()
+    for protocol, tags in inbounds.items():
+        settings = proxies.get(protocol)
+        if not settings:
+            continue
+
+        for tag in tags:
+            inbound = xray.config.inbounds_by_tag.get(tag)
+            if not inbound:
+                continue
+
+            stream = inbound.copy()
             stream['sni'] = stream['sni'].replace('*', salt)
             stream['host'] = stream['host'].replace('*', salt)
-            for host in XRAY_HOSTS:
+            for host in XrayStore.HOSTS:
+                addr = host['address'].format(SERVER_IP=SERVER_IP)
                 links.append(get_v2ray_link(remark=f"{host['remark']} ({username})",
-                                            host=host['hostname'],
-                                            port=inbound['port'],
+                                            host=addr,
+                                            port=host['port'] or inbound['port'],
                                             protocol=protocol,
                                             settings=settings.dict(),
                                             stream=stream))
@@ -312,21 +322,32 @@ def generate_v2ray_subscription(links: list) -> str:
     return base64.b64encode('\n'.join(links).encode()).decode()
 
 
-def generate_clash_subscription(username: str, proxies: dict, inbound_tags: dict) -> str:
+def generate_clash_subscription(username: str, proxies: dict, inbounds: dict) -> str:
     conf = ClashConfiguration()
     salt = secrets.token_urlsafe(12).lower()
-    for protocol, settings in proxies.items():
-        for inbound in filter(lambda i: i['tag'] in inbound_tags.get(protocol, []), INBOUNDS.get(protocol, [])):
-            stream = inbound['stream'].copy()
+
+    for protocol, tags in inbounds.items():
+        settings = proxies.get(protocol)
+        if not settings:
+            continue
+
+        for tag in tags:
+            inbound = xray.config.inbounds_by_tag.get(tag)
+            if not inbound:
+                continue
+
+            stream = inbound.copy()
             stream['sni'] = stream['sni'].replace('*', salt)
             stream['host'] = stream['host'].replace('*', salt)
-            for host in XRAY_HOSTS:
+            for host in XrayStore.HOSTS:
+                addr = host['address'].format(SERVER_IP=SERVER_IP)
                 conf.add(
                     remark=host['remark'],
-                    host=host['hostname'],
-                    port=inbound['port'],
+                    host=addr,
+                    port=host['port'] or inbound['port'],
                     protocol=protocol,
                     settings=settings.dict(no_obj=True),
                     stream=stream
                 )
+
     return conf.to_yaml()

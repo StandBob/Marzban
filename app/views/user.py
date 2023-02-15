@@ -7,30 +7,25 @@ from app.db import Session, crud, get_db
 from app.models.admin import Admin
 from app.models.proxy import ProxyTypes
 from app.models.user import User, UserCreate, UserModify, UserResponse, UserStatus
-from app.xray import INBOUNDS
 from fastapi import BackgroundTasks, Depends, HTTPException
 
 
 def xray_add_user(user: User):
-    for proxy_type in user.proxies:
+    for proxy_type, inbound_tags in user.inbounds.items():
         account = user.get_account(proxy_type)
-        for inbound in INBOUNDS.get(proxy_type, []):
-            if not inbound['tag'] in user.inbounds.get(proxy_type, []):
-                continue
-
+        for inbound_tag in inbound_tags:
             try:
-                xray.api.add_inbound_user(tag=inbound['tag'], user=account)
+                xray.api.add_inbound_user(tag=inbound_tag, user=account)
             except xray.exc.EmailExistsError:
                 pass
 
 
 def xray_remove_user(user: User):
-    for proxy_type in ProxyTypes:
-        for inbound in INBOUNDS.get(proxy_type, []):
-            try:
-                xray.api.remove_inbound_user(tag=inbound['tag'], email=user.username)
-            except xray.exc.EmailNotFoundError:
-                pass
+    for inbound_tag in xray.config.inbounds_by_tag:
+        try:
+            xray.api.remove_inbound_user(tag=inbound_tag, email=user.username)
+        except xray.exc.EmailNotFoundError:
+            pass
 
 
 @app.post("/api/user", tags=['User'], response_model=UserResponse)
@@ -49,10 +44,9 @@ def add_user(new_user: UserCreate,
     """
     # TODO expire should be datetime instead of timestamp
 
-    try:
-        [INBOUNDS[t] for t in new_user.proxies]
-    except KeyError as exc:
-        raise HTTPException(status_code=400, detail=f"Protocol {exc.args[0]} is disabled on your server")
+    for proxy_type in new_user.proxies:
+        if not xray.config.inbounds_by_protocol.get(proxy_type):
+            raise HTTPException(status_code=400, detail=f"Protocol {proxy_type} is disabled on your server")
 
     try:
         if admin.is_sudo:
@@ -106,10 +100,9 @@ def modify_user(username: str,
     - **inbounds** dictionary of protocol:inbound_tags, empty means no change
     """
 
-    try:
-        [INBOUNDS[t] for t in modified_user.proxies]
-    except KeyError as exc:
-        raise HTTPException(status_code=400, detail=f"Protocol {exc.args[0]} is disabled on your server")
+    for proxy_type in modified_user.proxies:
+        if not xray.config.inbounds_by_protocol.get(proxy_type):
+            raise HTTPException(status_code=400, detail=f"Protocol {proxy_type} is disabled on your server")
 
     dbuser = crud.get_user(db, username)
     if not dbuser:
@@ -203,4 +196,4 @@ def get_users(offset: int = None,
     Get all users
     """
     dbadmin = crud.get_admin(db, admin.username)
-    return crud.get_users(db, offset, limit, username, status, dbadmin)
+    yield from crud.get_users(db, offset, limit, username, status, dbadmin)
