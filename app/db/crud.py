@@ -70,8 +70,10 @@ def get_users(db: Session,
     return query.all()
 
 
-def get_users_count(db: Session, status: UserStatus = None):
+def get_users_count(db: Session, status: UserStatus = None, admin: Admin = None):
     query = db.query(User.id)
+    if admin:
+        query = query.filter(User.admin == admin)
     if status:
         query = query.filter(User.status == status)
     return query.count()

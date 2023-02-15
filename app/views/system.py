@@ -15,8 +15,13 @@ from fastapi import Depends, HTTPException
 def get_system_stats(db: Session = Depends(get_db), admin: Admin = Depends(Admin.get_current)):
     mem = memory_usage()
     system = crud.get_system_usage(db)
-    total_user = crud.get_users_count(db)
-    users_active = crud.get_users_count(db, UserStatus.active)
+
+    dbadmin = None
+    if not admin.is_sudo:
+        dbadmin = crud.get_admin(db, admin.username)
+
+    total_user = crud.get_users_count(db, admin=dbadmin)
+    users_active = crud.get_users_count(db, status=UserStatus.active, admin=dbadmin)
 
     return SystemStats(
         mem_total=mem.total,
