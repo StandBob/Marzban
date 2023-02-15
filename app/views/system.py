@@ -7,6 +7,7 @@ from app.models.proxy import ProxyHost, ProxyInbound, ProxyTypes
 from app.models.system import SystemStats
 from app.models.user import UserStatus
 from app.utils.system import memory_usage
+from app.utils.store import XrayStore
 from fastapi import Depends, HTTPException
 
 
@@ -57,6 +58,8 @@ def modify_hosts(modified_hosts: Dict[str, List[ProxyHost]],
 
     for inbound_tag, hosts in modified_hosts.items():
         crud.update_hosts(db, inbound_tag, hosts)
+
+    XrayStore.update_hosts()
 
     hosts = {}
     for inbound_tag in xray.config.inbounds_by_tag:
