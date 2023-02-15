@@ -20,10 +20,10 @@ def review():
             else:
                 continue
 
-            inbounds = itertools.chain.from_iterable(user.inbounds.values())
-            for inbound in inbounds:
+            inbound_tags = itertools.chain.from_iterable(user.inbounds.values())
+            for inbound_tag in inbound_tags:
                 try:
-                    xray.api.remove_inbound_user(tag=inbound['tag'], email=user.username)
+                    xray.api.remove_inbound_user(tag=inbound_tag, email=user.username)
                 except xray.exc.EmailNotFoundError:
                     pass
 
