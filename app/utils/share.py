@@ -306,7 +306,7 @@ def generate_v2ray_links(username: str, proxies: dict, inbounds: dict) -> list:
             stream = inbound.copy()
             stream['sni'] = stream['sni'].replace('*', salt)
             stream['host'] = stream['host'].replace('*', salt)
-            for host in XrayStore.HOSTS:
+            for host in XrayStore.HOSTS.get(tag, []):
                 addr = host['address'].format(SERVER_IP=SERVER_IP)
                 links.append(get_v2ray_link(remark=f"{host['remark']} ({username})",
                                             host=addr,
@@ -339,7 +339,7 @@ def generate_clash_subscription(username: str, proxies: dict, inbounds: dict) ->
             stream = inbound.copy()
             stream['sni'] = stream['sni'].replace('*', salt)
             stream['host'] = stream['host'].replace('*', salt)
-            for host in XrayStore.HOSTS:
+            for host in XrayStore.HOSTS.get(tag, []):
                 addr = host['address'].format(SERVER_IP=SERVER_IP)
                 conf.add(
                     remark=host['remark'],
